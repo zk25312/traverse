@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>导线控制点坐标平差软件</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: "Microsoft YaHei", system-ui, sans-serif; background: #f0f4f8; color: #1f2937; padding: 16px; }
+.wrap { max-width: 1320px; margin: 0 auto; }
+header { background: linear-gradient(135deg, #1e3a8a, #2563eb); color: #fff; border-radius: 14px; padding: 18px 24px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+header h1 { font-size: 22px; }
+header .sub { font-size: 12px; opacity: .85; margin-top: 4px; }
+.grid { display: grid; grid-template-columns: 1fr 1.7fr; gap: 14px; align-items: start; }
+.card { background: #fff; border-radius: 14px; padding: 16px 18px; box-shadow: 0 2px 10px rgba(30,58,138,.07); margin-bottom: 14px; }
+.card h2 { font-size: 16px; color: #1e3a8a; margin-bottom: 10px; border-left: 4px solid #2563eb; padding-left: 10px; }
+.card h3 { font-size: 14px; color: #374151; margin: 10px 0 6px; }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+th { background: #eff6ff; color: #1e3a8a; font-weight: 600; padding: 6px 5px; border: 1px solid #dbeafe; white-space: nowrap; }
+td { padding: 4px 5px; border: 1px solid #e5e7eb; }
+td input { width: 100%; border: 1px solid transparent; background: transparent; padding: 3px 4px; font-size: 12.5px; border-radius: 4px; }
+td input:focus { outline: none; border-color: #2563eb; background: #fff; }
+td input.num { text-align: right; font-family: Consolas, monospace; }
+.btn { border: none; border-radius: 8px; padding: 8px 16px; cursor: pointer; font-size: 13px; margin-right: 6px; }
+.btn-primary { background: #2563eb; color: #fff; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-green { background: #059669; color: #fff; font-size: 15px; padding: 10px 26px; }
+.btn-green:hover { background: #047857; }
+.btn-sm { background: #eef2f7; color: #374151; padding: 4px 10px; font-size: 12px; }
+.btn-sm:hover { background: #dbe3ee; }
+.btn-del { background: #fee2e2; color: #b91c1c; padding: 2px 8px; font-size: 11px; }
+.btn-del:hover { background: #fecaca; }
+.row-params { display: flex; flex-wrap: wrap; gap: 12px; }
+.param { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.param input { width: 70px; padding: 5px 8px; border: 1px solid #d1d5db; border-radius: 6px; text-align: right; }
+.param input[type=checkbox] { width: auto; }
+.notice { border-radius: 8px; padding: 10px 14px; font-size: 13px; margin: 10px 0; }
+.notice.err { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+.notice.warn { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+.notice.ok { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+.notice.info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+.res-sum { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+.res-sum .item { background: #eff6ff; border-radius: 10px; padding: 8px 14px; font-size: 12.5px; }
+.res-sum .item b { display: block; font-size: 17px; color: #1d4ed8; }
+.out-wrap { overflow-x: auto; }
+.out-wrap td { font-family: Consolas, monospace; }
+.known td { background: #f0fdf4; }
+.approx { color: #b45309; }
+.help { font-size: 12px; color: #6b7280; margin-top: 6px; line-height: 1.75; }
+.tabs { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+.tab { padding: 6px 14px; border-radius: 8px 8px 0 0; background: #e5edf8; cursor: pointer; font-size: 13px; border: 1px solid #dbeafe; border-bottom: none; }
+.tab.active { background: #fff; font-weight: 600; color: #1d4ed8; }
+.setup-head { display: flex; align-items: center; gap: 8px; margin: 12px 0 6px; flex-wrap: wrap; }
+.setup-head b { color: #1e3a8a; }
+.setup-head input { width: 110px; padding: 4px 8px; border: 1px solid #d1d5db; border-radius: 6px; }
+.pill { font-size: 11px; background: #e0e7ff; color: #3730a3; border-radius: 20px; padding: 2px 10px; }
+.pill.face { background: #fef3c7; color: #92400e; }
+.ttype { font-size: 13px; padding: 4px 10px; border-radius: 20px; background: #dbeafe; color: #1e40af; font-weight: 600; }
+footer { text-align: center; font-size: 12px; color: #9ca3af; margin-top: 20px; }
+@media (max-width: 1000px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>📐 导线控制点坐标平差软件</h1>
+      <div class="sub">全站仪任意设站 · 正倒镜一测回 · 方向+边长间接平差 · 闭合/附合/支导线</div>
+    </div>
+    <div>
+      <button class="btn btn-sm" onclick="clearAll()">清空</button>
+      <button class="btn btn-green" onclick="saveState()">💾 保存数据</button>
+    </div>
+  </header>
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h2>已知点（≥2个）</h2>
+        <table id="knownTable">
+          <thead><tr><th>点名</th><th>X (m)</th><th>Y (m)</th><th>H (m)</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div style="margin-top:8px">
+          <button class="btn btn-sm" onclick="addKnown()">＋ 添加已知点</button>
+          <button class="btn btn-sm" onclick="openImport('knowns')">📥 导入已知点</button>
+        </div>
+        <p class="help">填控制点真实三维坐标。XY 已知点≥2个（定平面基准）；H 已知点≥1个（用于反算未知点高程）。</p>
+      </div>
+      <div class="card">
+        <h2>平差参数</h2>
+        <div class="row-params">
+          <label class="param">测角中误差 <input id="pSa" type="number" value="2.5" step="0.1"> ″</label>
+          <label class="param">测距固定 <input id="pA" type="number" value="2" step="0.5"> mm</label>
+          <label class="param">比例 <input id="pB" type="number" value="2" step="0.5"> ppm</label>
+        </div>
+        <div class="row-params" style="margin-top:8px">
+          <label class="param"><input id="pDirDec" type="checkbox"> 角度按十进制度输入（不勾=测量惯例 ddd.mmss）</label>
+        </div>
+      </div>
+      <div class="card">
+        <h2>计算</h2>
+        <button class="btn btn-green" onclick="runAdj()">▶ 开始平差计算</button>
+        <button class="btn btn-primary" onclick="exportHTML()" id="btnHtml" style="display:none">📄 导出HTML成果报告</button>
+        <button class="btn btn-primary" onclick="exportExcel()" id="btnXls" style="display:none">📊 导出Excel坐标表</button>
+        <div id="msg"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h2>测站观测（每站可架在任意点）</h2>
+        <div id="setups"></div>
+        <div style="margin-top:10px">
+          <button class="btn btn-primary" onclick="addSetup()">＋ 添加测站</button>
+          <button class="btn btn-sm" onclick="openImport('stations')">📥 导入测站观测</button>
+        </div>
+        <p class="help">
+          <b>录入要点：</b><br>
+          ① <b>水平角</b>：默认按测量惯例 <b>ddd.mmss</b> 录入，如 <code>107.14409</code> = 107°14′40.9″。<br>
+          ② <b>正镜/倒镜</b>：同一目标可录两行（盘左、盘右），软件自动取一测回平均（倒镜±180°）。只录一行也可以算。<br>
+          ③ <b>距离</b>：水平距离（米）。<b>相对高程</b>：选填，该测站点假定基准高程；若某<b>已知高程点</b>填了相对高程，软件自动求基准差并反算各点绝对高程。<br>
+          ④ <b>导线类型自动识别</b>：起点终点都是已知点→闭合/附合导线；已知点分支→支导线；未知站回测已知点→往返支导线。<br>
+          ⑤ 未知点上设站：至少观测 2 个已知（或已算出）点且含距离，即可反算测站坐标。
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="card" id="resultCard" style="display:none">
+    <h2>平差成果</h2>
+    <div id="resSummary"></div>
+    <div id="resMsg"></div>
+    <div class="tabs">
+      <div class="tab active" data-t="t1" onclick="showTab('t1')">坐标成果表</div>
+      <div class="tab" data-t="t2" onclick="showTab('t2')">观测改正数</div>
+      <div class="tab" data-t="t3" onclick="showTab('t3')">精度与闭合差</div>
+    </div>
+    <div id="t1" class="tabpane out-wrap"></div>
+    <div id="t2" class="tabpane out-wrap" style="display:none"></div>
+    <div id="t3" class="tabpane" style="display:none"></div>
+  </div>
+  <footer>导线控制点坐标平差 · 方向+边长间接平差（含定向角未知数）· 高程由已知点按距离比例反算</footer>
+</div>
+<div id="importModal" style="display:none;position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(15,23,42,.55);z-index:99;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:14px;padding:20px;width:min(900px,94vw);max-height:90vh;overflow:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <h2 id="importTip" style="font-size:16px;color:#1e3a8a;margin:0">导入数据</h2>
+      <button class="btn-del" onclick="closeImport()">✕ 关闭</button>
+    </div>
+    <div class="row-params">
+      <label class="param">数据文件：<input type="file" id="importFile" accept=".dat,.csv,.txt" onchange="handleImportFile(this)"></label>
+      <label class="param"><input type="checkbox" id="impClear" checked> 导入前清空现有数据</label>
+    </div>
+    <div id="importCfg" style="display:none">
+      <div class="row-params" style="margin-top:10px" id="importMaps"></div>
+      <label class="param" style="margin-top:8px"><input type="checkbox" id="skipHeader" onchange="onSkipChange()"> 首行为表头（跳过）</label>
+      <h3>数据预览（前8行，已映射列高亮）</h3>
+      <div class="out-wrap" id="importPreview"></div>
+      <div style="margin-top:12px"><button class="btn btn-green" onclick="doImport()">✔ 确认导入</button></div>
+    </div>
+    <p class="help">支持 .dat / .csv / .txt，自动识别分隔符（逗号/制表符/分号/空格）与编码（UTF-8/GBK）。常见控制点 dat 格式（点名,编码,Y,X,H）会自动猜测列映射，可用下拉框调整。</p>
+  </div>
+</div>
+<script src="adjustment.js"></script>
+<script>
+"use strict";
+var state = { knowns: [], setups: [] };
+var lastResult = null;
+var STORE_KEY = "traverse_adjust_state";
+/* API 前缀：经网关访问时走 /app/traverse，本地直连走相对根 */
+var API_BASE = window.location.pathname.indexOf("/app/traverse") === 0 ? "/app/traverse" : "";
+var serverMode = false;      /* 是否连上服务端共享存储 */
+var serverVersion = 0;
+var syncing = false;
+/* ---------- 本地兜底（离线/服务不可用时） ---------- */
+function saveLocal() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
+}
+function loadLocal() {
+  try {
+    var raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return false;
+    var s = JSON.parse(raw);
+    if (!s || !Array.isArray(s.knowns) || !Array.isArray(s.setups)) return false;
+    state.knowns = s.knowns;
+    state.setups = s.setups;
+    return state.knowns.length > 0 || state.setups.length > 0;
+  } catch (e) { return false; }
+}
+function clearLocal() {
+  try { localStorage.removeItem(STORE_KEY); } catch (e) { /* ignore */ }
+}
+/* ---------- 服务端共享存储（多设备同一份） ---------- */
+/* 手动保存：点「保存数据」按钮时才写入服务端 */
+function saveState() {
+  var msg = document.getElementById("msg");
+  saveLocal();                       /* 先写本机兜底 */
+  if (!serverMode) {
+    msg.innerHTML = '<div class="notice warn">⚠ 未连上服务端，数据已保存到本机（仅本机可见）</div>';
+    return;
+  }
+  fetch(API_BASE + "/api/data", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ knowns: state.knowns, setups: state.setups })
+  })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d && d.ok) {
+        serverVersion = d.version || 0;
+        msg.innerHTML = '<div class="notice ok">✔ 已保存到共享存储（版本 ' + d.version + '），所有设备打开都是这份最新数据</div>';
+      } else {
+        msg.innerHTML = '<div class="notice err">✖ 保存失败：' + (d && d.error || "未知错误") + '</div>';
+      }
+    })
+    .catch(function (e) {
+      msg.innerHTML = '<div class="notice err">✖ 保存失败：' + e.message + '（数据已存本机）</div>';
+    });
+}
+function loadState(cb) {
+  fetch(API_BASE + "/api/data", { cache: "no-store" })
+    .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(function (d) {
+      serverMode = true;
+      serverVersion = d.version || 0;
+      var hasData = (d.knowns && d.knowns.length) || (d.setups && d.setups.length);
+      if (hasData) {
+        state.knowns = d.knowns || [];
+        state.setups = d.setups || [];
+        saveLocal();
+        cb(true, d);
+      } else {
+        cb(false, d);
+      }
+    })
+    .catch(function () {
+      serverMode = false;
+      cb(loadLocal(), null);   /* 服务不可用 -> 本地兜底 */
+    });
+}
+function clearStored() {
+  clearLocal();
+  if (serverMode) {
+    fetch(API_BASE + "/api/clear", { method: "POST" }).catch(function () { /* ignore */ });
+  }
+}
+/* 定时从服务端拉取最新（多设备同步） */
+function pollServer() {
+  if (!serverMode) return;
+  fetch(API_BASE + "/api/data", { cache: "no-store" })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d.version && d.version !== serverVersion) {
+        serverVersion = d.version;
+        state.knowns = d.knowns || [];
+        state.setups = d.setups || [];
+        renderKnown(); renderSetups();
+        saveLocal();
+      }
+    })
+    .catch(function () { /* ignore */ });
+}
+function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+/* ---------- 已知点 ---------- */
+function renderKnown() {
+  var tb = document.querySelector("#knownTable tbody");
+  tb.innerHTML = "";
+  state.knowns.forEach(function (k, i) {
+    var tr = el("tr");
+    ["name", "X", "Y", "H"].forEach(function (f) {
+      var td = el("td");
+      var inp = el("input"); inp.value = k[f] != null ? k[f] : "";
+      if (f !== "name") inp.className = "num";
+      inp.oninput = function () { k[f] = inp.value; };
+      td.appendChild(inp); tr.appendChild(td);
+    });
+    var tdd = el("td");
+    var del = el("button", "btn-del", "删"); del.onclick = function () { state.knowns.splice(i, 1); renderKnown(); };
+    tdd.appendChild(del); tr.appendChild(tdd);
+    tb.appendChild(tr);
+  });
+}
+function addKnown() { state.knowns.push({ name: "", X: "", Y: "", H: "" }); renderKnown(); }
+/* ---------- 测站 ---------- */
+function renderSetups() {
+  var box = document.getElementById("setups");
+  box.innerHTML = "";
+  state.setups.forEach(function (st, si) {
+    var head = el("div", "setup-head");
+    head.appendChild(el("b", null, "测站"));
+    var inp = el("input"); inp.placeholder = "测站点名"; inp.value = st.station || "";
+    inp.oninput = function () { st.station = inp.value; };
+    head.appendChild(inp);
+    head.appendChild(el("span", "pill", st.obs.length + " 个观测"));
+    var rhWrap = el("span", "param");
+    rhWrap.appendChild(el("span", null, "测站相对高程:"));
+    var rhInp = el("input"); rhInp.placeholder = "选填"; rhInp.style.width = "80px";
+    rhInp.value = st.relH != null ? st.relH : "";
+    rhInp.oninput = function () { st.relH = rhInp.value; };
+    rhWrap.appendChild(rhInp);
+    head.appendChild(rhWrap);
+    var delS = el("button", "btn-del", "删除测站");
+    delS.onclick = function () { state.setups.splice(si, 1); renderSetups(); };
+    head.appendChild(delS);
+    box.appendChild(head);
+    var table = el("table");
+    table.innerHTML = "<thead><tr><th style='width:100px'>目标点</th><th style='width:90px'>盘位</th><th>水平角读数</th><th style='width:110px'>水平距离(m)</th><th style='width:95px'>相对高程(m)</th><th style='width:40px'></th></tr></thead>";
+    var tb = el("tbody");
+    st.obs.forEach(function (o, oi) {
+      var tr = el("tr");
+      /* 目标 */
+      var td1 = el("td"); var i1 = el("input"); i1.value = o.target || "";
+      i1.oninput = function () { o.target = i1.value; }; td1.appendChild(i1); tr.appendChild(td1);
+      /* 盘位 */
+      var td2 = el("td"); var sel = el("select");
+      sel.style.cssText = "width:100%;border:1px solid #e5e7eb;border-radius:4px;padding:3px;font-size:12px";
+      [["L", "正镜"], ["R", "倒镜"]].forEach(function (opt) {
+        var op = el("option", null, opt[1]); op.value = opt[0];
+        if ((o.face || "L") === opt[0]) op.selected = true;
+        sel.appendChild(op);
+      });
+      sel.onchange = function () { o.face = sel.value; };
+      td2.appendChild(sel); tr.appendChild(td2);
+      /* 水平角 */
+      var td3 = el("td"); var i3 = el("input"); i3.className = "num"; i3.value = o.dir != null ? o.dir : "";
+      i3.placeholder = "如 107.14409"; i3.oninput = function () { o.dir = i3.value; };
+      td3.appendChild(i3); tr.appendChild(td3);
+      /* 距离 */
+      var td4 = el("td"); var i4 = el("input"); i4.className = "num"; i4.value = o.dist != null ? o.dist : "";
+      i4.oninput = function () { o.dist = i4.value; }; td4.appendChild(i4); tr.appendChild(td4);
+      /* 相对高程 */
+      var td6 = el("td"); var i6 = el("input"); i6.className = "num"; i6.value = o.relH != null ? o.relH : "";
+      i6.placeholder = "选填"; i6.oninput = function () { o.relH = i6.value; };
+      td6.appendChild(i6); tr.appendChild(td6);
+      /* 删除 */
+      var td5 = el("td"); var del = el("button", "btn-del", "删");
+      del.onclick = function () { st.obs.splice(oi, 1); renderSetups(); };
+      td5.appendChild(del); tr.appendChild(td5);
+      tb.appendChild(tr);
+    });
+    table.appendChild(tb);
+    box.appendChild(table);
+    var add = el("button", "btn-sm btn", "＋ 添加观测");
+    add.onclick = function () { st.obs.push({ target: "", face: "L", dir: "", dist: "", relH: "" }); renderSetups(); };
+    box.appendChild(add);
+  });
+}
+function addSetup() { state.setups.push({ station: "", relH: "", obs: [] }); renderSetups(); }
+function clearAll() {
+  if (!confirm("确定清空全部数据？\n（点「保存数据」会同步清空所有数据）")) return;
+  state.knowns = [];
+  state.setups = [];
+  clearStored();
+  document.getElementById("resultCard").style.display = "none";
+  document.getElementById("msg").innerHTML = "";
+  renderKnown(); renderSetups();
+}
+function showTab(id) {
+  document.querySelectorAll(".tab").forEach(function (t) { t.classList.toggle("active", t.dataset.t === id); });
+  document.querySelectorAll(".tabpane").forEach(function (p) { p.style.display = p.id === id ? "" : "none"; });
+}
+/* ---------- 示例：用户真实数据 ---------- */
+function runAdj() {
+  var msg = document.getElementById("msg");
+  var input = {
+    config: {
+      saSec: +document.getElementById("pSa").value,
+      aMM: +document.getElementById("pA").value,
+      bPPM: +document.getElementById("pB").value,
+      dirDecimal: document.getElementById("pDirDec").checked
+    },
+    knowns: state.knowns,
+    setups: state.setups
+  };
+  var r = SurveyAdjust.computeAdjustment(input);
+  lastResult = r;
+  var html = "";
+  r.errors.forEach(function (e) { html += '<div class="notice err">✖ ' + e + "</div>"; });
+  r.warnings.forEach(function (w) { html += '<div class="notice warn">⚠ ' + w + "</div>"; });
+  msg.innerHTML = html || '<div class="notice ok">✔ 平差计算完成</div>';
+  if (!r.ok) { document.getElementById("resultCard").style.display = "none"; return; }
+  renderResult(r);
+}
+/* ---------- 结果 ---------- */
+function fx(v, n) { return v == null ? "—" : (+v).toFixed(n); }
+function renderResult(r) {
+  document.getElementById("resultCard").style.display = "";
+  var s = '<div class="res-sum">' +
+    '<div class="item"><b>' + r.traverseType + "</b>导线类型</div>" +
+    '<div class="item"><b>' + r.points.length + "</b>总点数</div>" +
+    '<div class="item"><b>' + r.plan.n + "</b>观测数 n</div>" +
+    '<div class="item"><b>' + r.plan.t + "</b>未知数 t</div>" +
+    '<div class="item"><b>' + r.plan.r + "</b>多余观测 r</div>" +
+    '<div class="item"><b>' + fx(r.plan.s0, 3) + '″</b>单位权σ₀</div>' +
+    (r.closure ? '<div class="item"><b>' + fx(r.closure.fL * 1000, 2) + 'mm</b>闭合差f</div>' : '') +
+    "</div>";
+  document.getElementById("resSummary").innerHTML = s;
+  /* 坐标表 */
+  var h1 = '<table><thead><tr><th>点名</th><th>X (m)</th><th>Y (m)</th><th>H (m)</th><th>mX(mm)</th><th>mY(mm)</th><th>mP(mm)</th><th>属性</th></tr></thead><tbody>';
+  r.points.forEach(function (p) {
+    h1 += "<tr" + (p.knownXY ? " class='known'" : "") + "><td>" + p.name + "</td>" +
+      "<td>" + fx(p.X, 4) + "</td><td>" + fx(p.Y, 4) + "</td>" +
+      "<td" + (p.hApprox ? " class='approx'" : "") + ">" + fx(p.H, 4) + (p.hApprox ? " *" : "") + "</td>" +
+      "<td>" + fx(p.mX, 2) + "</td><td>" + fx(p.mY, 2) + "</td><td>" + fx(p.mP, 2) + "</td>" +
+      "<td>" + (p.knownXY ? "已知XY " : "平差 ") + (p.knownH ? "已知H" : (p.hFromRel ? "相对H" : (p.hApprox ? "推算H" : ""))) + "</td></tr>";
+  });
+  document.getElementById("t1").innerHTML = h1 + "</tbody></table>" +
+    (r.points.some(function (p) { return p.hApprox || p.hFromRel; }) ? '<p class="help">* 高程标注「相对H」= 由录入的相对高程锚定已知点反算；「推算H」= 按已知点高差与距离比例推算，仅供参考。</p>' : "");
+  /* 改正数 */
+  var h2 = '<h3>方向观测改正数（″）</h3><table><thead><tr><th>测站</th><th>目标</th><th>观测方向(°)</th><th>改正数V(″)</th></tr></thead><tbody>';
+  r.plan.dirRows.forEach(function (o) {
+    h2 += "<tr><td>" + o.from + "</td><td>" + o.to + "</td><td>" + fx(o.obs, 5) + "</td><td>" + fx(o.v, 2) + "</td></tr>";
+  });
+  h2 += '</tbody></table><h3 style="margin-top:12px">边长观测改正数（mm）</h3><table><thead><tr><th>测站</th><th>目标</th><th>观测边长(m)</th><th>改正数V(mm)</th></tr></thead><tbody>';
+  r.plan.distRows.forEach(function (o) {
+    h2 += "<tr><td>" + o.from + "</td><td>" + o.to + "</td><td>" + fx(o.obs, 4) + "</td><td>" + fx(o.v, 2) + "</td></tr>";
+  });
+  document.getElementById("t2").innerHTML = h2 + "</tbody></table>";
+  /* 精度与闭合差 */
+  var h3 = "<h3>精度统计</h3><table><tbody>" +
+    "<tr><td>平面：n=<b>" + r.plan.n + "</b>（方向 " + r.plan.nDir + " + 边长 " + r.plan.nDist + "），t=<b>" + r.plan.t + "</b>，r=<b>" + r.plan.r + "</b>，σ₀=<b>" + fx(r.plan.s0, 3) + "″</b></td></tr>" +
+    "<tr><td>高程方法：" + r.height.method + "（已知高程点 " + r.height.knownCount + " 个）</td></tr></tbody></table>";
+  if (r.closure) {
+    h3 += '<h3 style="margin-top:12px">闭合差</h3><table><tbody>' +
+      "<tr><td>ΣΔx(观测) = <b>" + fx(r.closure.sumDx, 4) + " m</b>　理论 " + fx(r.closure.theoDx, 4) + " m</td></tr>" +
+      "<tr><td>ΣΔy(观测) = <b>" + fx(r.closure.sumDy, 4) + " m</b>　理论 " + fx(r.closure.theoDy, 4) + " m</td></tr>" +
+      "<tr><td>导线全长 ΣD = <b>" + fx(r.closure.sumD, 3) + " m</b>（" + r.closure.nEdge + " 条导线边）</td></tr>" +
+      "<tr><td>fx = <b>" + fx(r.closure.fx * 1000, 2) + " mm</b>　fy = <b>" + fx(r.closure.fy * 1000, 2) + " mm</b></td></tr>" +
+      "<tr><td>全长闭合差 f = <b>" + fx(r.closure.fL * 1000, 2) + " mm</b></td></tr>" +
+      "<tr><td>相对闭合差 = <b>1/" + (r.closure.rel ? Math.round(1 / r.closure.rel) : "—") + "</b></td></tr></tbody></table>";
+  }
+  h3 += '<h3 style="margin-top:12px">各测站定向角</h3><table><thead><tr><th>测站</th><th>定向角 O₀ (°)</th></tr></thead><tbody>';
+  r.orientations.forEach(function (o) { h3 += "<tr><td>" + o.station + "</td><td>" + fx(o.O0deg, 5) + "</td></tr>"; });
+  document.getElementById("t3").innerHTML = h3 + "</tbody></table>";
+  showTab("t1");
+  document.getElementById("btnHtml").style.display = "";
+  document.getElementById("btnXls").style.display = "";
+}
+/* ---------- 导出功能 ---------- */
+function downloadFile(name, content, mime) {
+  var blob = new Blob(["\ufeff" + content], { type: mime || "text/html;charset=utf-8" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+}
+/* 导出HTML平差成果报告（单文件，含全部成果表） */
+function exportHTML() {
+  if (!lastResult || !lastResult.ok) { alert("请先完成平差计算"); return; }
+  var r = lastResult;
+  var t = new Date();
+  var stamp = t.getFullYear() + "-" + (t.getMonth() + 1) + "-" + t.getDate() + " " +
+    ("0" + t.getHours()).slice(-2) + ":" + ("0" + t.getMinutes()).slice(-2);
+  var h = '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>导线平差成果报告</title>';
+  h += '<style>body{font-family:"Microsoft YaHei",sans-serif;margin:24px;color:#1f2937;max-width:1000px;margin:0 auto;padding:20px}' +
+    'h1{color:#1e3a8a;border-bottom:3px solid #2563eb;padding-bottom:8px}' +
+    'h2{color:#1e3a8a;border-left:4px solid #2563eb;padding-left:10px;margin-top:24px}' +
+    'table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0}' +
+    'th{background:#eff6ff;color:#1e3a8a;padding:6px;border:1px solid #dbeafe}' +
+    'td{padding:5px 6px;border:1px solid #e5e7eb;font-family:Consolas,monospace}' +
+    '.known td{background:#f0fdf4}.meta{color:#6b7280;font-size:12px}.sum{background:#eff6ff;padding:10px 14px;border-radius:8px;font-size:13px}</style></head><body>';
+  h += "<h1>导线平差成果报告</h1><p class='meta'>生成时间：" + stamp + " · 导线类型：" + r.traverseType + "</p>";
+  h += '<div class="sum">观测数 n=' + r.plan.n + "（方向 " + r.plan.nDir + " + 边长 " + r.plan.nDist + "）· 未知数 t=" + r.plan.t +
+    " · 多余观测 r=" + r.plan.r + " · 单位权中误差 σ₀=" + fx(r.plan.s0, 3) + "″";
+  if (r.closure) h += " · 全长闭合差 f=" + fx(r.closure.fL * 1000, 2) + "mm · 相对闭合差 1/" + (r.closure.rel ? Math.round(1 / r.closure.rel) : "—");
+  h += "</div>";
+  /* 坐标成果表 */
+  h += '<h2>一、坐标成果表</h2><table><tr><th>点名</th><th>X (m)</th><th>Y (m)</th><th>H (m)</th><th>mX(mm)</th><th>mY(mm)</th><th>mP(mm)</th><th>属性</th></tr>';
+  r.points.forEach(function (p) {
+    h += (p.knownXY ? "<tr class='known'>" : "<tr>") + "<td>" + p.name + "</td><td>" + fx(p.X, 4) + "</td><td>" + fx(p.Y, 4) + "</td><td>" + fx(p.H, 4) + "</td><td>" + fx(p.mX, 2) + "</td><td>" + fx(p.mY, 2) + "</td><td>" + fx(p.mP, 2) + "</td><td>" +
+      (p.knownXY ? "已知XY " : "平差 ") + (p.knownH ? "已知H" : (p.hFromRel ? "相对H" : (p.hApprox ? "推算H" : ""))) + "</td></tr>";
+  });
+  h += "</table>";
+  /* 改正数 */
+  h += '<h2>二、方向观测改正数（″）</h2><table><tr><th>测站</th><th>目标</th><th>观测方向(°)</th><th>改正数V(″)</th></tr>';
+  r.plan.dirRows.forEach(function (o) { h += "<tr><td>" + o.from + "</td><td>" + o.to + "</td><td>" + fx(o.obs, 5) + "</td><td>" + fx(o.v, 2) + "</td></tr>"; });
+  h += '</table><h2>三、边长观测改正数（mm）</h2><table><tr><th>测站</th><th>目标</th><th>观测边长(m)</th><th>改正数V(mm)</th></tr>';
+  r.plan.distRows.forEach(function (o) { h += "<tr><td>" + o.from + "</td><td>" + o.to + "</td><td>" + fx(o.obs, 4) + "</td><td>" + fx(o.v, 2) + "</td></tr>"; });
+  h += "</table>";
+  /* 定向角 */
+  h += '<h2>四、各测站定向角</h2><table><tr><th>测站</th><th>定向角 O₀ (°)</th></tr>';
+  r.orientations.forEach(function (o) { h += "<tr><td>" + o.station + "</td><td>" + fx(o.O0deg, 5) + "</td></tr>"; });
+  h += "</table>";
+  if (r.closure) {
+    h += '<h2>五、闭合差</h2><table><tr><th>项目</th><th>数值</th></tr>' +
+      "<tr><td>ΣΔx / ΣΔy（观测）</td><td>" + fx(r.closure.sumDx, 4) + " m / " + fx(r.closure.sumDy, 4) + " m</td></tr>" +
+      "<tr><td>理论值</td><td>" + fx(r.closure.theoDx, 4) + " m / " + fx(r.closure.theoDy, 4) + " m</td></tr>" +
+      "<tr><td>fx / fy</td><td>" + fx(r.closure.fx * 1000, 2) + " mm / " + fx(r.closure.fy * 1000, 2) + " mm</td></tr>" +
+      "<tr><td>导线全长 ΣD</td><td>" + fx(r.closure.sumD, 3) + " m（" + r.closure.nEdge + " 条边）</td></tr>" +
+      "<tr><td>全长闭合差 f / 相对闭合差</td><td>" + fx(r.closure.fL * 1000, 2) + " mm / 1/" + (r.closure.rel ? Math.round(1 / r.closure.rel) : "—") + "</td></tr></table>";
+  }
+  h += '<p class="meta">导线控制点坐标平差软件 生成</p></body></html>';
+  downloadFile("导线平差成果报告_" + stamp.replace(/[: -]/g, "") + ".html", h);
+}
+/* 导出Excel坐标表（xlsx兼容HTML表格格式，Excel/WPS可直接打开） */
+function exportExcel() {
+  if (!lastResult || !lastResult.ok) { alert("请先完成平差计算"); return; }
+  var r = lastResult;
+  var h = '<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>坐标成果</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>';
+  h += '<table border="1"><tr><th>点名</th><th>X (m)</th><th>Y (m)</th><th>H (m)</th><th>mX (mm)</th><th>mY (mm)</th><th>点位中误差 (mm)</th><th>属性</th></tr>';
+  r.points.forEach(function (p) {
+    h += "<tr><td>" + p.name + "</td><td>" + (p.X != null ? p.X.toFixed(4) : "") + "</td><td>" + (p.Y != null ? p.Y.toFixed(4) : "") +
+      "</td><td>" + (p.H != null ? p.H.toFixed(4) : "") + "</td><td>" + (p.mX != null ? p.mX.toFixed(2) : "") +
+      "</td><td>" + (p.mY != null ? p.mY.toFixed(2) : "") + "</td><td>" + (p.mP != null ? p.mP.toFixed(2) : "") + "</td><td>" +
+      (p.knownXY ? "已知" : "平差") + (p.knownH ? "/已知H" : (p.hFromRel ? "/相对H" : (p.hApprox ? "/推算H" : ""))) + "</td></tr>";
+  });
+  h += "</table></body></html>";
+  var t = new Date();
+  var stamp = "" + t.getFullYear() + (t.getMonth() + 1) + t.getDate() + "_" + ("0" + t.getHours()).slice(-2) + ("0" + t.getMinutes()).slice(-2);
+  downloadFile("坐标成果_" + stamp + ".xls", h, "application/vnd.ms-excel;charset=utf-8");
+}
+/* ---------- 文件导入（dat/csv/txt，列可自选映射） ---------- */
+var importState = { mode: "knowns", rows: [], ncol: 0, skipHeader: false, map: {} };
+function openImport(mode) {
+  importState.mode = mode;
+  importState.rows = [];
+  document.getElementById("importModal").style.display = "flex";
+  document.getElementById("importFile").value = "";
+  document.getElementById("importCfg").style.display = "none";
+  document.getElementById("importPreview").innerHTML = "";
+  document.getElementById("importTip").textContent =
+    mode === "knowns" ? "📥 导入已知点（点名 / X / Y / H）" : "📥 导入测站观测（测站 / 目标 / 水平角 / 距离 / 盘位）";
+}
+function closeImport() { document.getElementById("importModal").style.display = "none"; }
+function detectDelimiter(line) {
+  var cands = [",", "\t", ";", "|"];
+  var best = ",", bestN = 0;
+  cands.forEach(function (d) {
+    var n = line.split(d).length - 1;
+    if (n > bestN) { best = d; bestN = n; }
+  });
+  if (bestN === 0 && /\s\S+\s+\S+/.test(line)) return " ";
+  return best;
+}
+function splitLine(line, delim) {
+  if (delim === " ") return line.trim().split(/\s+/);
+  return line.split(delim).map(function (s) { return s.trim(); });
+}
+function isNumericStr(s) { return s != null && String(s).trim() !== "" && isFinite(+s); }
+function handleImportFile(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function (e) {
+    var buf = new Uint8Array(e.target.result);
+    var text = new TextDecoder("utf-8", { fatal: false }).decode(buf);
+    if (text.indexOf("\uFFFD") >= 0) {
+      try { text = new TextDecoder("gbk").decode(buf); } catch (err) { /* 忽略 */ }
+    }
+    parseImportText(text);
+  };
+  reader.readAsArrayBuffer(file);
+}
+function parseImportText(text) {
+  var lines = text.split(/\r?\n/).filter(function (l) { return l.trim() !== ""; });
+  if (!lines.length) { alert("文件为空或无法读取"); return; }
+  var delim = detectDelimiter(lines[0]);
+  var rows = lines.map(function (l) { return splitLine(l, delim); });
+  var ncol = 0;
+  rows.forEach(function (r) { if (r.length > ncol) ncol = r.length; });
+  rows = rows.map(function (r) { while (r.length < ncol) r.push(""); return r; });
+  importState.rows = rows;
+  importState.ncol = ncol;
+  /* 表头检测：首行数值占比低则视为表头 */
+  var first = rows[0];
+  var numCnt = first.filter(function (c) { return isNumericStr(c); }).length;
+  importState.skipHeader = numCnt < ncol / 2;
+  guessColumns();
+  document.getElementById("importCfg").style.display = "";
+  document.getElementById("skipHeader").checked = importState.skipHeader;
+  renderImportCfg();
+  renderImportPreview();
+}
+function dataRows() {
+  return importState.skipHeader ? importState.rows.slice(1) : importState.rows;
+}
+function guessColumns() {
+  var rows = dataRows();
+  var ncol = importState.ncol;
+  var stats = [];
+  for (var c = 0; c < ncol; c++) {
+    var n = 0, maxAbs = 0;
+    rows.forEach(function (r) {
+      if (isNumericStr(r[c])) { n++; var v = Math.abs(+r[c]); if (v > maxAbs) maxAbs = v; }
+    });
+    stats.push({ ratio: rows.length ? n / rows.length : 0, maxAbs: maxAbs });
+  }
+  var m = {};
+  var numCols = [], strCols = [];
+  for (c = 0; c < ncol; c++) {
+    if (stats[c].ratio > 0.8) numCols.push(c); else strCols.push(c);
+  }
+  if (importState.mode === "knowns") {
+    /* 点名：数值占比最低的列（通常第一列） */
+    var nameCol = strCols.length ? strCols[0] : 0;
+    m.name = nameCol;
+    /* 数值列按最大值降序：X（最大）> Y > H */
+    var nums = numCols.filter(function (c) { return c !== nameCol; });
+    nums.sort(function (a, b) { return stats[b].maxAbs - stats[a].maxAbs; });
+    m.X = nums[0] != null ? nums[0] : -1;
+    m.Y = nums[1] != null ? nums[1] : -1;
+    m.H = nums[2] != null ? nums[2] : -1;
+  } else {
+    /* 测站/目标：前两个非数值列 */
+    m.station = strCols[0] != null ? strCols[0] : 0;
+    m.target = strCols[1] != null ? strCols[1] : (strCols[0] != null ? strCols[0] : 1);
+    /* 水平角：最大值≤360 的数值列；距离：另一数值列 */
+    var angCol = -1, distCol = -1;
+    numCols.forEach(function (c) {
+      if (angCol < 0 && stats[c].maxAbs <= 360.1) angCol = c;
+      else if (distCol < 0) distCol = c;
+    });
+    if (angCol < 0 && numCols.length) angCol = numCols[0];
+    if (distCol < 0 && numCols.length > 1) distCol = numCols[1];
+    m.dir = angCol;
+    m.dist = distCol;
+    /* 盘位：值多为 正/倒/L/R/盘左/盘右 的列 */
+    m.face = -1;
+    var faces = ["正镜", "倒镜", "正", "倒", "盘左", "盘右", "L", "R", "左", "右"];
+    for (c = 0; c < ncol; c++) {
+      var hit = 0;
+      rows.forEach(function (r) {
+        if (faces.indexOf((r[c] || "").trim()) >= 0) hit++;
+      });
+      if (rows.length && hit > rows.length * 0.5) { m.face = c; break; }
+    }
+  }
+  importState.map = m;
+}
+function colLabel(c) {
+  if (c < 0) return "（不导入）";
+  var name = "";
+  if (importState.skipHeader && importState.rows.length) name = importState.rows[0][c] || "";
+  return "第" + (c + 1) + "列" + (name ? "（" + name + "）" : "");
+}
+function renderImportCfg() {
+  var mode = importState.mode;
+  var m = importState.map;
+  var fields = mode === "knowns"
+    ? [["name", "点名"], ["X", "X 坐标"], ["Y", "Y 坐标"], ["H", "H 高程（选填）"]]
+    : [["station", "测站"], ["target", "目标"], ["dir", "水平角"], ["dist", "水平距离"], ["face", "盘位（选填）"]];
+  var box = document.getElementById("importMaps");
+  box.innerHTML = "";
+  fields.forEach(function (f) {
+    var wrap = el("label", "param");
+    wrap.appendChild(el("span", null, f[1] + ":"));
+    var sel = el("select");
+    sel.style.cssText = "padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:13px";
+    var op0 = el("option", null, "（不导入）"); op0.value = "-1";
+    if (m[f[0]] == null || m[f[0]] < 0) op0.selected = true;
+    sel.appendChild(op0);
+    for (var c = 0; c < importState.ncol; c++) {
+      var op = el("option", null, colLabel(c)); op.value = c;
+      if (m[f[0]] === c) op.selected = true;
+      sel.appendChild(op);
+    }
+    sel.onchange = function () { m[f[0]] = +sel.value; renderImportPreview(); };
+    wrap.appendChild(sel);
+    box.appendChild(wrap);
+  });
+}
+function renderImportPreview() {
+  var m = importState.map;
+  var mapped = [];
+  Object.keys(m).forEach(function (k) { if (m[k] >= 0) mapped.push(m[k]); });
+  var rows = importState.rows.slice(0, 8);
+  var h = '<table><thead><tr>';
+  for (var c = 0; c < importState.ncol; c++) {
+    h += '<th' + (mapped.indexOf(c) >= 0 ? ' style="background:#fde68a"' : '') + '>' + String.fromCharCode(65 + c) + '</th>';
+  }
+  h += '</tr></thead><tbody>';
+  rows.forEach(function (r, ri) {
+    h += '<tr' + (ri === 0 && importState.skipHeader ? ' style="color:#9ca3af"' : '') + '>';
+    for (c = 0; c < importState.ncol; c++) {
+      h += '<td' + (mapped.indexOf(c) >= 0 ? ' style="background:#fef9c3"' : '') + '>' + (r[c] || "") + '</td>';
+    }
+    h += '</tr>';
+  });
+  document.getElementById("importPreview").innerHTML = h + '</tbody></table>';
+}
+function onSkipChange() {
+  importState.skipHeader = document.getElementById("skipHeader").checked;
+  guessColumns();
+  renderImportCfg();
+  renderImportPreview();
+}
+function doImport() {
+  var m = importState.map;
+  var rows = dataRows();
+  if (importState.mode === "knowns") {
+    if (m.name == null || m.name < 0 || m.X == null || m.X < 0 || m.Y == null || m.Y < 0) { alert("请选择 点名 / X / Y 对应的数据列"); return; }
+    var list = [];
+    rows.forEach(function (r) {
+      var name = (r[m.name] || "").trim();
+      if (!name) return;
+      list.push({ name: name, X: m.X >= 0 ? r[m.X] : "", Y: m.Y >= 0 ? r[m.Y] : "", H: m.H >= 0 ? r[m.H] : "" });
+    });
+    if (!list.length) { alert("没有解析到有效数据，请检查列映射"); return; }
+    if (document.getElementById("impClear").checked) state.knowns = [];
+    list.forEach(function (k) { state.knowns.push(k); });
+    renderKnown();
+  } else {
+    if (m.station == null || m.station < 0 || m.target == null || m.target < 0) { alert("请选择 测站 / 目标 对应的数据列"); return; }
+    if (document.getElementById("impClear").checked) state.setups = [];
+    var map2 = {}, order = [];
+    rows.forEach(function (r) {
+      var sn = (r[m.station] || "").trim(), tn = (r[m.target] || "").trim();
+      if (!sn || !tn || sn === tn) return;
+      var st = map2[sn];
+      if (!st) { st = map2[sn] = { station: sn, relH: "", obs: [] }; order.push(st); }
+      var face = "L";
+      if (m.face >= 0) {
+        var v = (r[m.face] || "").trim();
+        if (v === "倒" || v === "倒镜" || v === "R" || v === "盘右" || v === "右") face = "R";
+      }
+      st.obs.push({ target: tn, face: face, dir: m.dir >= 0 ? r[m.dir] : "", dist: m.dist >= 0 ? r[m.dist] : "", relH: "" });
+    });
+    if (!order.length) { alert("没有解析到有效数据，请检查列映射"); return; }
+    order.forEach(function (st) { state.setups.push(st); });
+    renderSetups();
+  }
+  closeImport();
+  document.getElementById("msg").innerHTML = '<div class="notice ok">✔ 导入完成，请核对数据后点击「开始平差计算」</div>';
+}
+/* ---------- 初始化（异步：加载共享数据到界面） ---------- */
+function initApp(hasData, meta) {
+  renderKnown();
+  renderSetups();
+  var msg = document.getElementById("msg");
+  if (hasData) {
+    msg.innerHTML = '<div class="notice ok">✔ 已加载共享数据（' + state.knowns.length + " 个已知点、" + state.setups.length + ' 个测站）。修改后请点「保存数据」，所有设备才能看到更新</div>';
+  } else if (serverMode) {
+    msg.innerHTML = '<div class="notice info">共享存储为空，直接录入或导入数据，改完点「保存数据」</div>';
+  } else {
+    msg.innerHTML = '<div class="notice warn">⚠ 未连上服务端，当前数据仅在本机（保存按钮仅保存到本机）</div>';
+  }
+}
+loadState(function (hasData, meta) {
+  initApp(hasData, meta);
+  if (serverMode) setInterval(pollServer, 8000);   /* 每8秒同步其他设备保存的数据 */
+});
+</script>
+</body>
+</html>

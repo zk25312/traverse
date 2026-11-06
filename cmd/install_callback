@@ -1,0 +1,15 @@
+#!/bin/bash
+# 安装完成回调：确保 CGI 脚本可执行（Windows 打包可能丢失执行位）
+LOG="${TRIM_PKGVAR}/app.log"
+echo "$(date '+%Y-%m-%d %H:%M:%S') - install_callback" >> "$LOG" 2>/dev/null
+for f in "${TRIM_APPDEST}/ui/index.cgi" "${TRIM_APPDEST}/app/ui/index.cgi"; do
+  if [ -f "$f" ]; then
+    chmod 755 "$f" 2>>"$LOG"
+    echo "chmod 755 $f" >> "$LOG" 2>/dev/null
+  fi
+done
+# 同时给 cmd 脚本补权限
+for f in "${TRIM_APPDEST}/../cmd/"*; do
+  [ -f "$f" ] && chmod 755 "$f" 2>/dev/null
+done
+exit 0

@@ -1,0 +1,10 @@
+#!/bin/bash
+# 升级完成回调：确保 CGI 脚本可执行
+LOG="${TRIM_PKGVAR}/app.log"
+echo "$(date '+%Y-%m-%d %H:%M:%S') - upgrade_callback" >> "$LOG" 2>/dev/null
+for f in "${TRIM_APPDEST}/ui/index.cgi" "${TRIM_APPDEST}/app/ui/index.cgi"; do
+  if [ -f "$f" ]; then
+    chmod 755 "$f" 2>>"$LOG"
+  fi
+done
+exit 0

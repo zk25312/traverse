@@ -1,0 +1,14 @@
+{
+  ".url": {
+    "traverse.main": {
+      "allUsers": true,
+      "gatewayPrefix": "/app/traverse",
+      "gatewaySocket": "app.sock",
+      "icon": "images/icon_{0}.png",
+      "protocol": "",
+      "title": "导线坐标平差",
+      "type": "iframe",
+      "url": "/app/traverse"
+    }
+  }
+}
